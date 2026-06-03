@@ -2,6 +2,8 @@ import 'package:frevolt_team_app/features/auth/data/datasource/supabase_datasour
 import 'package:frevolt_team_app/features/auth/domain/entity/auth_user_entity.dart';
 import 'package:frevolt_team_app/features/auth/domain/repository/auth_repository.dart';
 
+import '../../../../core/services/services_barrel.dart';
+
 class AuthRepositoryImpl implements AuthRepository{
   final datasource = SupabaseDatasource();
   @override
@@ -11,23 +13,27 @@ class AuthRepositoryImpl implements AuthRepository{
   }
 
   @override
-  Future<void> logOut() {
-    // TODO: implement logOut
-    throw UnimplementedError();
+  Future<void> logOut() async{
+    await datasource.logOut();
   }
 
   @override
-  Future<void> sendOtp(String mobileNumber) async{
-    try {
-      await datasource.sendOtp(mobileNumber);
-    } catch (e) {
-      throw Exception(e);
-    }
-  }
+Future<Either<AppError, Unit>> sendOtp(String mobileNumber) {
+  return datasource.sendOtp(mobileNumber);
+}
 
-  @override
-  Future<void> verifyOtp(String mobileNumber, int otp) {
-    // TODO: implement verifyOtp
-    throw UnimplementedError();
-  }
+@override
+Future<Either<AppError, AuthUserEntity>> verifyOtp(
+  String mobileNumber,
+  String otp,
+) async {
+  final result = await datasource.verifyOtp(
+    mobileNumber,
+    otp,
+  );
+
+  return result.map(
+    (model) => model.toEntity(),
+  );
+}
 }

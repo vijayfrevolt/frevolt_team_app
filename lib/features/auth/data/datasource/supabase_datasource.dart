@@ -3,16 +3,17 @@ import 'package:frevolt_team_app/features/auth/data/models/auth_user_model.dart'
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../../core/services/services_barrel.dart';
+
 class SupabaseDatasource {
   final supabase = Supabase.instance.client;
 
-  Future<void> sendOtp(String mobileNumber) async {
-    var client = http.Client();
+  Future<Either<AppError, Unit>> sendOtp(String mobileNumber) async {
     try {
       final headers = {
         'accept': '*/*',
         'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
-        'apikey':dotenv.get('SUPABASE_ANON_KEY'),
+        'apikey': dotenv.get('SUPABASE_ANON_KEY'),
         'content-type': 'application/json; charset=utf-8',
         'origin': 'https://frevolt-team-prod.flutterflow.app',
         'priority': 'u=1, i',
@@ -30,26 +31,47 @@ class SupabaseDatasource {
 
       final data = '{\n  "phone": "+91$mobileNumber"\n}';
       final baseUrl = dotenv.get('SUPABASE_URL');
-      final url = Uri.parse(
-        '$baseUrl/auth/v1/otp',
-      );
+      final url = Uri.parse('$baseUrl/auth/v1/otp');
       await http.post(url, headers: headers, body: data);
+      return Right(unit);
     } catch (e) {
-      throw Exception(e);
-    } finally {
-      client.close();
+      return Left(AppError(message: e.toString()));
+    } 
+  }
+
+  Future<Either<AppError, AuthUserModel>> verifyOtp(String mobileNumber, String otp) async {
+    try {
+      final response = await supabase.auth.verifyOTP(
+        type: OtpType.sms,
+        token: otp,
+        phone: '+91$mobileNumber',
+      );
+      if (response.user == null) {
+        return Left(AppError(message: response.toString()));
+      }
+      return Right(AuthUserModel(
+        mobileNumber: mobileNumber,
+        id: response.user!.id,
+        jwtToken: response.session!.accessToken,
+      ));
+    } catch (e) {
+      return Left(AppError(message: e.toString()) );
     }
   }
 
-  Future<void> verifyOtp(int mobileNumber, int otp) async {}
-
-  Future<void> logOut() async {}
+  Future<void> logOut() async {
+    await supabase.auth.signOut();
+  }
 
   Future<AuthUserModel> getCurrentUser() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      throw Exception("No user logged in");
+    }
     return AuthUserModel(
-      mobileNumber: "mobileNumber",
-      id: "id",
-      jwtToken: "jwtToken",
+      mobileNumber: user?.phone ?? "mobileNumber",
+      id: user?.id ?? "id",
+      jwtToken: supabase.auth.currentSession?.accessToken ?? "jwtToken" 
     );
   }
 }

@@ -1,75 +1,93 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fpdart/fpdart.dart';
+import 'package:frevolt_team_app/core/services/services_barrel.dart';
 import 'package:frevolt_team_app/features/auth/data/repository/auth_repository_impl.dart';
 import 'package:frevolt_team_app/features/auth/domain/entity/auth_user_entity.dart';
 
 class AuthState {
   final bool isLoading;
-  final String? error;
   final AuthUserEntity? user;
-  final bool otpSent;
 
   const AuthState({
     required this.isLoading,
-    this.error,
     this.user,
-    this.otpSent = false,
   });
 
   AuthState copyWith({
     bool? isLoading,
-    String? error,
     AuthUserEntity? user,
-    bool? otpSent,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
       user: user ?? this.user,
-      otpSent: otpSent ?? this.otpSent,
     );
   }
 }
 
-class AuthProvier extends Notifier<AuthState> {
+class AuthProvider extends Notifier<AuthState> {
   final repository = AuthRepositoryImpl();
+
   @override
-AuthState build() {
-  return const AuthState(
-    isLoading: false,
-    otpSent: false,
-  );
-}
-
-  Future<void> sendOtp(String mobileNumber) async {
-  state = state.copyWith(isLoading: true);
-
-  try {
-    await repository.sendOtp(mobileNumber);
-
-    state = state.copyWith(
+  AuthState build() {
+    return const AuthState(
       isLoading: false,
-      otpSent: true,
-      error: null,
     );
-  } catch (e) {
-    state = state.copyWith(
+  }
+
+  Future<Either<AppError, Unit>> sendOtp(
+    String mobileNumber,
+  ) async {
+    state = state.copyWith(isLoading: true);
+
+    final result = await repository.sendOtp(
+      mobileNumber,
+    );
+
+    state = state.copyWith(isLoading: false);
+
+    return result;
+  }
+
+  Future<Either<AppError, AuthUserEntity>> verifyOtp(
+    String mobileNumber,
+    String otp,
+  ) async {
+    state = state.copyWith(isLoading: true);
+
+    final result = await repository.verifyOtp(
+      mobileNumber,
+      otp,
+    );
+
+    result.fold(
+      (_) {},
+      (user) {
+        state = state.copyWith(user: user);
+      },
+    );
+
+    state = state.copyWith(isLoading: false);
+
+    return result;
+  }
+
+  Future<void> logOut() async {
+    state = state.copyWith(isLoading: true);
+
+    await repository.logOut();
+
+    state = const AuthState(
       isLoading: false,
-      error: e.toString(),
+      user: null,
     );
+  }
+
+  Future<AuthUserEntity> getCurrentUser() {
+    return repository.getCurrentUser();
   }
 }
 
-  Future<void> verifyOtp(String mobileNumber, int otp) async {}
-
-  Future<void> logOut() async {}
-
-  Future<AuthUserEntity> getCurrentUser() async {
-    return AuthUserEntity(
-      mobileNumber: "mobileNumber",
-      id: "id",
-      jwtToken: "jwtToken",
-    );
-  }
-}
-
-final authNotifierProvider = NotifierProvider<AuthProvier, AuthState>(AuthProvier.new);
+final authNotifierProvider =
+    NotifierProvider<AuthProvider, AuthState>(
+  AuthProvider.new,
+);

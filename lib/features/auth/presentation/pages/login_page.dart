@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frevolt_team_app/core/components/custom_button.dart';
+import 'package:frevolt_team_app/core/services/error/app_error.dart';
 import 'package:frevolt_team_app/core/navigation/routes.dart';
+import 'package:frevolt_team_app/core/services/show_custom_toast.dart';
 import 'package:frevolt_team_app/features/auth/auth_provider.dart';
-import 'package:frevolt_team_app/features/auth/presentation/pages/otp_verification_page.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:toastification/toastification.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -17,23 +19,13 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   late TextEditingController mobileNumberController;
 
-  static const lightPinTheme = MaterialPinTheme(
-    shape: MaterialPinShape.outlined,
-    cellSize: Size(55, 80),
-    spacing: 12,
-    borderRadius: BorderRadius.all(Radius.circular(12)),
-    borderWidth: 1.5,
-    focusedBorderWidth: 2.5,
-    fillColor: Colors.white,
-    completeFillColor: Colors.white,
-    borderColor: Colors.grey,
-    focusedBorderColor: Color(0xff023a96),
-  );
-
   @override
   void initState() {
     super.initState();
+
     mobileNumberController = TextEditingController();
+
+    
   }
 
   @override
@@ -42,9 +34,45 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     super.dispose();
   }
 
+  Future<void> _sendOtp() async {
+  if (mobileNumberController.text.length != 10) {
+    showCustomToast(
+      context,
+      AppError(
+        message: 'Please enter a valid 10-digit mobile number',
+      ),
+      ToastificationType.error,
+    );
+    return;
+  }
+
+  final result = await ref
+      .read(authNotifierProvider.notifier)
+      .sendOtp(mobileNumberController.text);
+
+  if (!mounted) return;
+
+  result.match(
+    (error) {
+      showCustomToast(
+        context,
+        error,
+        ToastificationType.error,
+      );
+    },
+    (_) {
+      context.push(
+        AppRoutes.otp,
+        extra: mobileNumberController.text,
+      );
+    },
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
+
     return Scaffold(
       body: Stack(
         children: [
@@ -55,60 +83,61 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: 400, maxWidth: 400),
-                    child: Image.asset('assets/images/frevolt_logo.png'),
+                    constraints: const BoxConstraints(
+                      maxHeight: 400,
+                      maxWidth: 400,
+                    ),
+                    child: Image.asset(
+                      'assets/images/frevolt_logo.png',
+                    ),
                   ),
                   const SizedBox(height: 15),
-                  Text("Log In"),
+                  const Text("Log In"),
                   const SizedBox(height: 15),
                   ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: 400),
+                    constraints: const BoxConstraints(
+                      maxWidth: 400,
+                    ),
                     child: Column(
                       children: [
                         TextField(
-                          controller: mobileNumberController,
+                          controller:
+                              mobileNumberController,
                           maxLength: 10,
-                          maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                          decoration: InputDecoration(
+                          keyboardType:
+                              TextInputType.phone,
+                          maxLengthEnforcement:
+                              MaxLengthEnforcement
+                                  .enforced,
+                          decoration:
+                              const InputDecoration(
                             hintText: "Phone number",
-                            border: OutlineInputBorder(),
+                            border:
+                                OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: 15),
-                        GestureDetector(
-                          onTap: () {
-                            ref
-                                .read(authNotifierProvider.notifier)
-                                .sendOtp('9175507495');
-                            authState.otpSent
-                                ? context.push(
-                                    AppRoutes.otp,
-                                    extra: mobileNumberController.text,
-                                  )
-                                : null;
-                          },
-                          child: Container(
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: Color(0xff023a96),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Align(
-                              alignment: AlignmentGeometry.center,
-                              child: Text(
-                                "Continue",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
+                        CustomButton(
+                          text: "Continue",
+                          height: 50,
+                          width: double.infinity,
+                          onPressed: _sendOtp,
+                          isLoading:
+                              authState.isLoading,
+                          backgroundColor:
+                              const Color(0xff023a96),
+                          textColor: Colors.white,
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 15),
-                  Text(
+                  const Text(
                     "By continuing, you agree to the Terms & Conditions \nTnCs, License Agreement, Privacy Policy",
-                    style: TextStyle(fontSize: 12, color: Color(0xff023a96)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xff023a96),
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -116,11 +145,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ),
           ),
           ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: 500, maxWidth: 500),
+            constraints: const BoxConstraints(
+              maxHeight: 500,
+              maxWidth: 500,
+            ),
             child: Image.asset(
               'assets/images/login_page_top_overlay.png',
               fit: BoxFit.fill,
-              alignment: Alignment(-1.0, -1.0),
+              alignment: const Alignment(-1.0, -1.0),
             ),
           ),
         ],

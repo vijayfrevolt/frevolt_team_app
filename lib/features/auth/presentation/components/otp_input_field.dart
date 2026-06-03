@@ -3,8 +3,8 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 
 class OtpInputField extends StatelessWidget {
   final int length;
-  final Function(String otp) onSubmit;
-  const OtpInputField({super.key, required this.length, required this.onSubmit});
+  final Function(String otp) onChange;
+  const OtpInputField({super.key, required this.length, required this.onChange});
 
   static const lightPinTheme = MaterialPinTheme(
     shape: MaterialPinShape.outlined,
@@ -27,8 +27,8 @@ class OtpInputField extends StatelessWidget {
       enablePaste: true,
       keyboardType: TextInputType.number,
       theme: lightPinTheme,
-      onSubmitted: (value) {
-        onSubmit(value);
+      onChanged: (value) {
+        onChange(value);
       },
     );
   }
