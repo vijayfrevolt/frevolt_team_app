@@ -1,17 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frevolt_team_app/core/navigation/routes.dart';
+import 'package:frevolt_team_app/features/auth/auth_provider.dart';
 import 'package:frevolt_team_app/features/auth/presentation/pages/otp_verification_page.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pin_code_fields/pin_code_fields.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
+  late TextEditingController mobileNumberController;
+
+  static const lightPinTheme = MaterialPinTheme(
+    shape: MaterialPinShape.outlined,
+    cellSize: Size(55, 80),
+    spacing: 12,
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+    borderWidth: 1.5,
+    focusedBorderWidth: 2.5,
+    fillColor: Colors.white,
+    completeFillColor: Colors.white,
+    borderColor: Colors.grey,
+    focusedBorderColor: Color(0xff023a96),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    mobileNumberController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    mobileNumberController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authNotifierProvider);
     return Scaffold(
       body: Stack(
         children: [
@@ -33,6 +66,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Column(
                       children: [
                         TextField(
+                          controller: mobileNumberController,
                           maxLength: 10,
                           maxLengthEnforcement: MaxLengthEnforcement.enforced,
                           decoration: InputDecoration(
@@ -43,7 +77,15 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 15),
                         GestureDetector(
                           onTap: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (context) => OtpVerificationPage(),));
+                            ref
+                                .read(authNotifierProvider.notifier)
+                                .sendOtp('9175507495');
+                            authState.otpSent
+                                ? context.push(
+                                    AppRoutes.otp,
+                                    extra: mobileNumberController.text,
+                                  )
+                                : null;
                           },
                           child: Container(
                             height: 50,

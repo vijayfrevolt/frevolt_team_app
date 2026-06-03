@@ -1,29 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:frevolt_team_app/features/auth/presentation/components/otp_input_field.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
 
 class OtpVerificationPage extends StatefulWidget {
-  const OtpVerificationPage({super.key});
+  final String mobileNumber;
+  const OtpVerificationPage({super.key, required this.mobileNumber});
 
   @override
   State<OtpVerificationPage> createState() => _OtpVerificationPageState();
 }
 
 class _OtpVerificationPageState extends State<OtpVerificationPage> {
-  static const lightPinTheme = MaterialPinTheme(
-    shape: MaterialPinShape.outlined,
-    cellSize: Size(55, 80),
-    spacing: 12,
-    borderRadius: BorderRadius.all(Radius.circular(12)),
-    borderWidth: 1.5,
-    focusedBorderWidth: 2.5,
-    fillColor: Colors.white,
-    completeFillColor: Colors.white,
-    borderColor: Colors.grey,
-    focusedBorderColor: Color(0xff023a96),
-  );
 
  @override
   Widget build(BuildContext context) {
+    String otp;
     return Scaffold(
       body: Stack(
         children: [
@@ -48,13 +39,9 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                     constraints: BoxConstraints(maxWidth: 400),
                     child: Column(
                       children: [
-                        MaterialPinField(
-                          length: 6,
-                          autoDismissKeyboard: true,
-                          enablePaste: true,
-                          keyboardType: TextInputType.number,
-                          theme: lightPinTheme,
-                        ),
+                        OtpInputField(length: 6, onSubmit: (otp){setState(() {
+                          otp = otp;
+                        });}),
                         const SizedBox(height: 15),
                         GestureDetector(
                           onTap: () {},
